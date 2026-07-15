@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, JSONField } from 'payload'
 
 import {
   BlocksFeature,
@@ -26,6 +26,127 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from 'payload'
+
+type JSONSchema = Exclude<JSONField['jsonSchema'], undefined>['schema'];
+const filterSchema: JSONSchema = {
+  $schema: 'http://json-schema.org/draft-07/schema#',
+  type: 'object',
+  definitions: {
+    condition: {
+      type: 'object',
+      properties: {
+        _int_eq: {
+          type: 'object',
+          additionalProperties: { type: 'integer' },
+        },
+        _str_in: {
+          type: 'object',
+          additionalProperties: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        _str_not_in: {
+          type: 'object',
+          additionalProperties: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        _str_eq: {
+          type: 'object',
+          additionalProperties: { type: 'string' },
+        },
+        _bool_eq: {
+          type: 'object',
+          additionalProperties: { type: 'boolean' },
+        },
+        _str_not_eq: {
+          type: 'object',
+          additionalProperties: { type: 'string' },
+        },
+        _int_in_range_exc: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              min: { type: 'integer' },
+              max: { type: 'integer' },
+            },
+            anyOf: [{ required: ['min'] }, { required: ['max'] }],
+            additionalProperties: false,
+          },
+        },
+        _array_contains: {
+          type: 'object',
+          additionalProperties: {
+            anyOf: [
+              { type: 'string' },
+              { type: 'number' },
+              { type: 'integer' },
+              { type: 'boolean' },
+            ],
+          },
+        },
+        _array_not_contains: {
+          type: 'object',
+          additionalProperties: {
+            anyOf: [
+              { type: 'string' },
+              { type: 'number' },
+              { type: 'integer' },
+              { type: 'boolean' },
+            ],
+          },
+        },
+        _int_in_range_inc: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              min: { type: 'integer' },
+              max: { type: 'integer' },
+            },
+            anyOf: [{ required: ['min'] }, { required: ['max'] }],
+            additionalProperties: false,
+          },
+        },
+        _is_null: {
+          type: 'object',
+          additionalProperties: { type: 'boolean' },
+        },
+        _is_not_null: {
+          type: 'object',
+          additionalProperties: { type: 'boolean' },
+        },
+        _days_from_now: {
+          type: 'object',
+          additionalProperties: { type: 'integer', minimum: 0 },
+        },
+        _or: {
+          type: 'array',
+          items: { $ref: '#/definitions/condition' },
+        },
+        _and: {
+          type: 'array',
+          items: { $ref: '#/definitions/condition' },
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  properties: {
+    _or: {
+      type: 'array',
+      items: { $ref: '#/definitions/condition' },
+    },
+    _and: {
+      type: 'array',
+      items: { $ref: '#/definitions/condition' },
+    },
+  },
+  additionalProperties: false,
+};
 
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
@@ -215,7 +336,15 @@ export const Posts: CollectionConfig<'posts'> = {
       ],
     },
     slugField(),
-  ],
+    {
+      name: 'criteria_json',
+      type: 'json',
+      jsonSchema: {
+        uri: 'dummy://foo.json',
+        fileMatch: ['dummy://foo.json'],
+        schema: filterSchema,
+      },
+    },],
   hooks: {
     afterChange: [revalidatePost],
     afterRead: [populateAuthors],
